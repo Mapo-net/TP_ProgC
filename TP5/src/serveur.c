@@ -18,6 +18,7 @@
 #include <unistd.h>
 
 #include "serveur.h"
+#include "repertoire.h"
 
 int socketfd; // Déclaration globale de socketfd
 
@@ -113,6 +114,53 @@ int recois_numeros_calcule(int client_socket_fd, const char *data)
 int recois_envoie_message(int client_socket_fd, char *data)
 {
   printf("Message reçu: %s\n", data);
+  if (strncmp(data, "repertoire :", 12) == 0)
+  {
+    const char *chemin = data + 12;
+    char nom_repertoire[1024];
+    size_t longueur;
+    int socket_copie;
+    FILE *sortie;
+
+    while (*chemin == ' ' || *chemin == '\t')
+    {
+      chemin++;
+    }
+    longueur = strcspn(chemin, "\r\n");
+    if (longueur == 0 || longueur >= sizeof(nom_repertoire))
+    {
+      char erreur[] = "Erreur : chemin de repertoire invalide.\n";
+      return renvoie_message(client_socket_fd, erreur);
+    }
+
+    memcpy(nom_repertoire, chemin, longueur);
+    nom_repertoire[longueur] = '\0';
+    socket_copie = dup(client_socket_fd);
+    if (socket_copie < 0)
+    {
+      perror("dup");
+      return EXIT_FAILURE;
+    }
+    sortie = fdopen(socket_copie, "w");
+    if (sortie == NULL)
+    {
+      perror("fdopen");
+      close(socket_copie);
+      return EXIT_FAILURE;
+    }
+
+    fprintf(sortie, "Contenu du dossier %s :\n", nom_repertoire);
+    lire_dossier_iteratif_vers(sortie, nom_repertoire);
+    if (fputc('\0', sortie) == EOF || fflush(sortie) == EOF)
+    {
+      perror("envoi du répertoire");
+      fclose(sortie);
+      return EXIT_FAILURE;
+    }
+    fclose(sortie);
+    return EXIT_SUCCESS;
+  }
+
   if (strncmp(data, "calcule :", 9) == 0)
   {
     return recois_numeros_calcule(client_socket_fd, data);

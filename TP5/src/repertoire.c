@@ -59,21 +59,28 @@ void lire_dossier_recursif(const char *nom_du_repertoire)
     parcourir_dossier(nom_du_repertoire);
 }
 
-void lire_dossier_iteratif(const char *nom_du_repertoire)
+void lire_dossier_iteratif_vers(FILE *sortie, const char *nom_du_repertoire)
 {
     size_t capacite = 16;
     size_t nombre_chemins = 0;
     int erreur_memoire = 0;
     char **pile = malloc(capacite * sizeof(*pile));
 
+    if (sortie == NULL) {
+        free(pile);
+        return;
+    }
+
     if (pile == NULL) {
         perror("malloc");
+        fprintf(sortie, "Erreur : mémoire insuffisante.\n");
         return;
     }
 
     pile[nombre_chemins] = malloc(strlen(nom_du_repertoire) + 1);
     if (pile[nombre_chemins] == NULL) {
         perror("malloc");
+        fprintf(sortie, "Erreur : mémoire insuffisante.\n");
         free(pile);
         return;
     }
@@ -87,6 +94,7 @@ void lire_dossier_iteratif(const char *nom_du_repertoire)
 
         if (repertoire == NULL) {
             perror(chemin);
+            fprintf(sortie, "Impossible d'ouvrir le répertoire : %s\n", chemin);
             free(chemin);
             continue;
         }
@@ -108,6 +116,7 @@ void lire_dossier_iteratif(const char *nom_du_repertoire)
             chemin_entree = malloc(longueur_chemin + separateur + longueur_nom + 1);
             if (chemin_entree == NULL) {
                 perror("malloc");
+                fprintf(sortie, "Erreur : mémoire insuffisante.\n");
                 erreur_memoire = 1;
                 break;
             }
@@ -118,7 +127,7 @@ void lire_dossier_iteratif(const char *nom_du_repertoire)
                 chemin_entree[longueur_chemin + 1] = '\0';
             }
             strcat(chemin_entree, entree->d_name);
-            printf("%s\n", chemin_entree);
+            fprintf(sortie, "%s\n", chemin_entree);
 
             if (lstat(chemin_entree, &informations) == 0 && S_ISDIR(informations.st_mode)) {
                 if (nombre_chemins == capacite) {
@@ -127,6 +136,7 @@ void lire_dossier_iteratif(const char *nom_du_repertoire)
 
                     if (nouvelle_pile == NULL) {
                         perror("realloc");
+                        fprintf(sortie, "Erreur : mémoire insuffisante.\n");
                         free(chemin_entree);
                         erreur_memoire = 1;
                         break;
@@ -148,6 +158,11 @@ void lire_dossier_iteratif(const char *nom_du_repertoire)
         free(pile[--nombre_chemins]);
     }
     free(pile);
+}
+
+void lire_dossier_iteratif(const char *nom_du_repertoire)
+{
+    lire_dossier_iteratif_vers(stdout, nom_du_repertoire);
 }
 
 void lire_dossier(const char *nom_du_repertoire)
