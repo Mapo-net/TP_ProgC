@@ -1,6 +1,7 @@
 #include <stdio.h>
 
 #include "fichier.h"
+#include "liste.h"
 #include "operator.h"
 
 static void vider_fin_de_ligne(void)
@@ -124,6 +125,36 @@ static void exercice_4_2(void)
 	}
 }
 
+static void exercice_4_7(void)
+{
+	const struct couleur couleurs[10] = {
+		{0xFF, 0x00, 0x00, 0xFF},
+		{0x00, 0xFF, 0x00, 0xFF},
+		{0x00, 0x00, 0xFF, 0xFF},
+		{0xFF, 0xFF, 0x00, 0xFF},
+		{0xFF, 0x00, 0xFF, 0xFF},
+		{0x00, 0xFF, 0xFF, 0xFF},
+		{0x80, 0x40, 0x20, 0xFF},
+		{0x20, 0x40, 0x80, 0xFF},
+		{0x10, 0x20, 0x30, 0xFF},
+		{0xAA, 0x55, 0x33, 0xFF}
+	};
+	struct liste_couleurs ma_liste;
+
+	init_liste(&ma_liste);
+	for (int i = 0; i < 10; i++) {
+		if (!insertion(&couleurs[i], &ma_liste)) {
+			fprintf(stderr, "Erreur : impossible d'ajouter une couleur.\n");
+			liberer_liste(&ma_liste);
+			return;
+		}
+	}
+
+	printf("Liste des couleurs :\n");
+	parcours(&ma_liste);
+	liberer_liste(&ma_liste);
+}
+
 int main(void)
 {
 	int choix;
@@ -131,6 +162,7 @@ int main(void)
 	printf("Choisissez l'exercice à lancer :\n");
 	printf("1. Calcul avec opérateurs\n");
 	printf("2. Gestion de fichiers\n");
+	printf("3. Liste de couleurs\n");
 	printf("Votre choix : ");
 	if (scanf("%d", &choix) != 1) {
 		printf("Saisie invalide.\n");
@@ -143,6 +175,9 @@ int main(void)
 		break;
 	case 2:
 		exercice_4_2();
+		break;
+	case 3:
+		exercice_4_7();
 		break;
 	default:
 		printf("Exercice non disponible.\n");
