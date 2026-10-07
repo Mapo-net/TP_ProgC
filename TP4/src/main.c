@@ -1,6 +1,36 @@
 #include <stdio.h>
 
+#include "fichier.h"
 #include "operator.h"
+
+static void vider_fin_de_ligne(void)
+{
+	int caractere;
+
+	while ((caractere = getchar()) != '\n' && caractere != EOF) {
+	}
+}
+
+static int lire_ligne(char *texte, size_t taille)
+{
+	int caractere;
+	int i;
+
+	if (fgets(texte, (int)taille, stdin) == NULL) {
+		return 0;
+	}
+
+	for (i = 0; texte[i] != '\0' && texte[i] != '\n'; i++) {
+	}
+	if (texte[i] == '\n') {
+		texte[i] = '\0';
+	} else {
+		while ((caractere = getchar()) != '\n' && caractere != EOF) {
+		}
+	}
+
+	return 1;
+}
 
 static void exercice_4_1(void)
 {
@@ -38,12 +68,69 @@ static void exercice_4_1(void)
 	}
 }
 
+static void exercice_4_2(void)
+{
+	int choix;
+	char nom_de_fichier[256];
+	char message[1024];
+
+	for (;;) {
+		printf("\nQue souhaitez-vous faire ?\n");
+		printf("1. Lire un fichier\n");
+		printf("2. Écrire dans un fichier\n");
+		printf("3. Quitter\n");
+		printf("Votre choix : ");
+
+		if (scanf("%d", &choix) != 1) {
+			printf("Saisie invalide.\n");
+			vider_fin_de_ligne();
+			continue;
+		}
+		vider_fin_de_ligne();
+
+		if (choix == 3) {
+			break;
+		}
+		if (choix != 1 && choix != 2) {
+			printf("Choix invalide.\n");
+			continue;
+		}
+
+		if (choix == 1) {
+			printf("Entrez le nom du fichier à lire : ");
+			if (!lire_ligne(nom_de_fichier, sizeof(nom_de_fichier))) {
+				printf("Impossible de lire le nom du fichier.\n");
+				break;
+			}
+			lire_fichier(nom_de_fichier);
+		} else {
+			printf("Entrez le nom du fichier dans lequel écrire : ");
+			if (!lire_ligne(nom_de_fichier, sizeof(nom_de_fichier))) {
+				printf("Impossible de lire le nom du fichier.\n");
+				break;
+			}
+
+			printf("Entrez le message à écrire : ");
+			if (!lire_ligne(message, sizeof(message))) {
+				printf("Impossible de lire le message.\n");
+				break;
+			}
+
+			if (ecrire_dans_fichier(nom_de_fichier, message) == 0) {
+				printf("Le message a été écrit dans le fichier %s.\n",
+				       nom_de_fichier);
+			}
+		}
+	}
+}
+
 int main(void)
 {
 	int choix;
 
 	printf("Choisissez l'exercice à lancer :\n");
 	printf("1. Calcul avec opérateurs\n");
+	printf("2. Gestion de fichiers\n");
 	printf("Votre choix : ");
 	if (scanf("%d", &choix) != 1) {
 		printf("Saisie invalide.\n");
@@ -53,6 +140,9 @@ int main(void)
 	switch (choix) {
 	case 1:
 		exercice_4_1();
+		break;
+	case 2:
+		exercice_4_2();
 		break;
 	default:
 		printf("Exercice non disponible.\n");
