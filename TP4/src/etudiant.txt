@@ -1,0 +1,5 @@
+Marc;Dupont;20 rue du petit Montesson;15.60;5.23
+Maxime;Clement;Esiee-it;19.00;20.00
+Test;Raté;6bis avenue chaussette;4.82;923.61
+ab;cd;ef;45.00;12.00
+voir documentation;hello;world!;78.00;78.00

@@ -33,7 +33,7 @@ int lire_fichier(const char *nom_de_fichier)
 
 int ecrire_dans_fichier(const char *nom_de_fichier, const char *message)
 {
-	FILE *fichier = fopen(nom_de_fichier, "w");
+	FILE *fichier = fopen(nom_de_fichier, "a");
 
 	if (fichier == NULL) {
 		perror(nom_de_fichier);
