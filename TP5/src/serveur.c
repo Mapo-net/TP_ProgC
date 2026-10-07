@@ -40,6 +40,69 @@ int renvoie_message(int client_socket_fd, char *data)
   return EXIT_SUCCESS;
 }
 
+int recois_numeros_calcule(int client_socket_fd, const char *data)
+{
+  char operateur;
+  double nombre1;
+  double nombre2 = 0;
+  double resultat;
+  int nombre_valeurs = sscanf(data, "calcule : %c %lf %lf",
+                              &operateur, &nombre1, &nombre2);
+  char reponse[128];
+
+  if (nombre_valeurs != 2 && nombre_valeurs != 3)
+  {
+    snprintf(reponse, sizeof(reponse), "Erreur : format de calcul invalide.\n");
+    return renvoie_message(client_socket_fd, reponse);
+  }
+
+  if (nombre_valeurs == 2)
+  {
+    if (operateur == '+')
+    {
+      resultat = nombre1;
+    }
+    else if (operateur == '-')
+    {
+      resultat = -nombre1;
+    }
+    else
+    {
+      snprintf(reponse, sizeof(reponse), "Erreur : opérateur unaire invalide.\n");
+      return renvoie_message(client_socket_fd, reponse);
+    }
+  }
+  else
+  {
+    switch (operateur)
+    {
+    case '+':
+      resultat = nombre1 + nombre2;
+      break;
+    case '-':
+      resultat = nombre1 - nombre2;
+      break;
+    case '*':
+      resultat = nombre1 * nombre2;
+      break;
+    case '/':
+      if (nombre2 == 0)
+      {
+        snprintf(reponse, sizeof(reponse), "Erreur : division par zéro.\n");
+        return renvoie_message(client_socket_fd, reponse);
+      }
+      resultat = nombre1 / nombre2;
+      break;
+    default:
+      snprintf(reponse, sizeof(reponse), "Erreur : opérateur non pris en charge.\n");
+      return renvoie_message(client_socket_fd, reponse);
+    }
+  }
+
+  snprintf(reponse, sizeof(reponse), "calcule : %.10g\n", resultat);
+  return renvoie_message(client_socket_fd, reponse);
+}
+
 /**
  * Cette fonction lit les données envoyées par le client,
  * et renvoie un message en réponse.
@@ -50,13 +113,14 @@ int renvoie_message(int client_socket_fd, char *data)
 int recois_envoie_message(int client_socket_fd, char *data)
 {
   printf("Message reçu: %s\n", data);
-  char code[10];
-  if (sscanf(data, "%9s:", code) == 1) // Assurez-vous que le format est correct
+  if (strncmp(data, "calcule :", 9) == 0)
   {
-    if (strcmp(code, "message:") == 0)
-    {
-      return renvoie_message(client_socket_fd, data);
-    }
+    return recois_numeros_calcule(client_socket_fd, data);
+  }
+
+  if (strncmp(data, "message:", 8) == 0)
+  {
+    return renvoie_message(client_socket_fd, data);
   }
 
   return (EXIT_SUCCESS);
@@ -94,7 +158,7 @@ void gerer_client(int client_socket_fd)
     memset(data, 0, sizeof(data));
 
     // Lecture des données envoyées par le client
-    int data_size = read(client_socket_fd, data, sizeof(data));
+    int data_size = read(client_socket_fd, data, sizeof(data) - 1);
 
     if (data_size <= 0)
     {
@@ -114,6 +178,7 @@ void gerer_client(int client_socket_fd)
       break; // Sortir de la boucle de communication avec ce client
     }
 
+    data[data_size] = '\0';
     recois_envoie_message(client_socket_fd, data);
   }
 }

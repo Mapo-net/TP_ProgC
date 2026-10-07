@@ -15,6 +15,50 @@
 
 #include "client.h"
 
+int envoie_operateur_numeros(int socketfd, char operateur, double nombre1,
+                             double nombre2, int nombre_operandes)
+{
+  char data[1024];
+  int longueur;
+
+  if (nombre_operandes == 1)
+  {
+    longueur = snprintf(data, sizeof(data), "calcule : %c %.10g\n", operateur, nombre1);
+  }
+  else
+  {
+    longueur = snprintf(data, sizeof(data), "calcule : %c %.10g %.10g\n",
+                        operateur, nombre1, nombre2);
+  }
+
+  if (longueur < 0 || (size_t)longueur >= sizeof(data))
+  {
+    fprintf(stderr, "Opération trop longue.\n");
+    return -1;
+  }
+
+  if (write(socketfd, data, (size_t)longueur) < 0)
+  {
+    perror("Erreur d'écriture");
+    return -1;
+  }
+
+  memset(data, 0, sizeof(data));
+  int read_status = read(socketfd, data, sizeof(data) - 1);
+  if (read_status <= 0)
+  {
+    if (read_status < 0)
+    {
+      perror("Erreur de lecture");
+    }
+    return -1;
+  }
+
+  data[read_status] = '\0';
+  printf("Réponse du serveur: %s", data);
+  return 0;
+}
+
 /**
  * Fonction pour envoyer et recevoir un message depuis un client connecté à la socket.
  *
@@ -24,42 +68,58 @@
 int envoie_recois_message(int socketfd)
 {
   char data[1024];
-
-  // Réinitialisation de l'ensemble des données
-  memset(data, 0, sizeof(data));
-
-  // Demande à l'utilisateur d'entrer un message
   char message[1024];
+  char operateur;
+  double nombre1;
+  double nombre2;
+
   printf("Votre message (max 1000 caractères): ");
-  fgets(message, sizeof(message), stdin);
+  if (fgets(message, sizeof(message), stdin) == NULL)
+  {
+    return -1;
+  }
 
-  // Construit le message avec une étiquette "message: "
-  strcpy(data, "message: ");
-  strcat(data, message);
+  if (strncmp(message, "calcule :", 9) == 0)
+  {
+    int nombre_valeurs = sscanf(message, "calcule : %c %lf %lf",
+                                 &operateur, &nombre1, &nombre2);
+    if (nombre_valeurs != 2 && nombre_valeurs != 3)
+    {
+      fprintf(stderr, "Format attendu : calcule : opérateur nombre [nombre]\n");
+      return 0;
+    }
 
-  // Envoie le message au client
-  int write_status = write(socketfd, data, strlen(data));
-  if (write_status < 0)
+    return envoie_operateur_numeros(socketfd, operateur, nombre1, nombre2,
+                                    nombre_valeurs - 1);
+  }
+
+  int longueur = snprintf(data, sizeof(data), "message: %s", message);
+  if (longueur < 0 || (size_t)longueur >= sizeof(data))
+  {
+    fprintf(stderr, "Message trop long.\n");
+    return 0;
+  }
+
+  if (write(socketfd, data, (size_t)longueur) < 0)
   {
     perror("Erreur d'écriture");
     return -1;
   }
 
-  // Réinitialisation de l'ensemble des données
   memset(data, 0, sizeof(data));
-
-  // Lit les données de la socket
-  int read_status = read(socketfd, data, sizeof(data));
-  if (read_status < 0)
+  int read_status = read(socketfd, data, sizeof(data) - 1);
+  if (read_status <= 0)
   {
-    perror("Erreur de lecture");
+    if (read_status < 0)
+    {
+      perror("Erreur de lecture");
+    }
     return -1;
   }
+  data[read_status] = '\0';
 
-  // Affiche le message reçu du client
   printf("Message reçu: %s\n", data);
-
-  return 0; // Succès
+  return 0;
 }
 
 int main()
@@ -82,7 +142,7 @@ int main()
   memset(&server_addr, 0, sizeof(server_addr));
   server_addr.sin_family = AF_INET;
   server_addr.sin_port = htons(PORT);
-  server_addr.sin_addr.s_addr = INADDR_ANY;
+  server_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 
   // demande de connection au serveur
   int connect_status = connect(socketfd, (struct sockaddr *)&server_addr, sizeof(server_addr));
@@ -92,10 +152,8 @@ int main()
     exit(EXIT_FAILURE);
   }
 
-  while (1)
+  while (envoie_recois_message(socketfd) == 0)
   {
-    // appeler la fonction pour envoyer un message au serveur
-    envoie_recois_message(socketfd);
   }
 
   close(socketfd);
